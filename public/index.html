@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>X Cookie エディタ</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; max-width: 800px; }
+    textarea { width: 100%; height: 300px; margin-top: 1em; }
+    input, select, button { margin: 0.5em 0; padding: 0.5em; font-size: 1em; }
+  </style>
+</head>
+<body>
+  <h1>X.com Cookie 編集＆ログイン偽装</h1>
+
+  <label>認証情報の種類:</label>
+  <select id="authSelector">
+    <option value="">選択してください</option>
+    <option value="auth_token">auth_token</option>
+    <option value="ct0">ct0</option>
+    <option value="guest_id">guest_id</option>
+  </select>
+
+  <input type="text" id="authValue" placeholder="値を入力" />
+  <button onclick="applyEdit()">追加/更新</button>
+
+  <textarea id="cookieEditor"></textarea>
+  <button onclick="saveCookies()">Cookie保存</button>
+
+  <h2>ページ取得</h2>
+  <input type="text" id="targetUrl" placeholder="https://x.com/..." style="width: 100%;" />
+  <button onclick="fetchPage()">取得</button>
+  <iframe id="preview" width="100%" height="600px" style="margin-top: 1em;"></iframe>
+
+  <script>
+    async function loadInitialCookies() {
+      const res = await fetch('cookies.json');
+      const json = await res.json();
+      document.getElementById('cookieEditor').value = JSON.stringify(json, null, 2);
+    }
+
+    function applyEdit() {
+      const key = document.getElementById('authSelector').value;
+      const val = document.getElementById('authValue').value;
+      if (!key || !val) return alert('選択と入力が必要です');
+
+      const data = JSON.parse(document.getElementById('cookieEditor').value);
+      const existing = data.find(c => c.name === key);
+      if (existing) {
+        existing.value = val;
+      } else {
+        data.push({
+          name: key,
+          value: val,
+          domain: '.x.com',
+          path: '/',
+          httpOnly: true,
+          secure: true
+        });
+      }
+
+      document.getElementById('cookieEditor').value = JSON.stringify(data, null, 2);
+      document.getElementById('authValue').value = '';
+    }
+
+    async function saveCookies() {
+      const text = document.getElementById('cookieEditor').value;
+      try {
+        const json = JSON.parse(text);
+        await fetch('/set-cookies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: text
+        });
+        alert('保存完了！');
+      } catch (e) {
+        alert('JSON形式に誤りがあります');
+      }
+    }
+
+    async function fetchPage() {
+      const url = document.getElementById('targetUrl').value;
+      const res = await fetch('/xproxy?url=' + encodeURIComponent(url));
+      const html = await res.text();
+      const iframe = document.getElementById('preview');
+      iframe.srcdoc = html;
+    }
+
+    loadInitialCookies();
+  </script>
+</body>
+</html>
