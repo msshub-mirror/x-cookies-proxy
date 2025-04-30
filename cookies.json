@@ -1,0 +1,10 @@
+[
+  {
+    "name": "guest_id",
+    "value": "guest_id_placeholder",
+    "domain": ".x.com",
+    "path": "/",
+    "httpOnly": true,
+    "secure": true
+  }
+]
